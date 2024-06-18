@@ -1,4 +1,4 @@
-const cachedName = "version2";
+const cachedName = "version3";
 const cachedAssets = ["index.html", "main.js", "style.css"];
 
 // Step - Install Service Worker
