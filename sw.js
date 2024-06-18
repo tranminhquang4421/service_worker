@@ -1,45 +1,32 @@
-const cachedName = "version3";
-const cachedAssets = ["index.html", "main.js", "style.css"];
+const cacheName = "cache-v1";
+const appShellFiles = ["/", "/index.html", "/style.css"];
 
-// Step - Install Service Worker
 self.addEventListener("install", (e) => {
-  console.log("Service Worker Installed");
-  // Step - Cache files
   e.waitUntil(
-    caches
-      .open(cachedName)
-      .then((cache) => {
-        console.log("caching files");
-        cache.addAll(cachedAssets);
-      })
-      .then(() => {
-        self.skipWaiting();
-      })
-  );
-});
-// Step - Activate Service Worker
-self.addEventListener("activate", (e) => {
-  console.log("Service Worker Activated");
-  //Step - Keep Cache light
-  e.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== cachedName) {
-            console.log("Cached Service worker is being cleared");
-            return caches.delete(cache);
-          }
-        })
-      );
-    })
+    (async () => {
+      const cache = await caches.open(cacheName);
+      await cache.addAll(appShellFiles);
+    })()
   );
 });
 
-// Step - Persisting cached assets
-self.addEventListener("fetch", function (event) {
-  event.respondWith(
-    caches.match(event.request).then(function (response) {
-      return response || fetch(event.request);
-    }).catch(() => caches.match(event.request))
+// Fetching content using Service Worker
+self.addEventListener("fetch", (e) => {
+  if (
+    !(e.request.url.startsWith("http:") || e.request.url.startsWith("https:"))
+  )
+    return;
+
+  e.respondWith(
+    (async () => {
+      const r = await caches.match(e.request);
+      console.log(`[Service Worker] Fetching resource: ${e.request.url}`);
+      if (r) return r;
+      const response = await fetch(e.request);
+      const cache = await caches.open(cacheName);
+      console.log(`[Service Worker] Caching new resource: ${e.request.url}`);
+      cache.put(e.request, response.clone());
+      return response;
+    })()
   );
 });
